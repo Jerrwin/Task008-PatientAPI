@@ -1,0 +1,106 @@
+<?php
+include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../models/Patient.php';
+include_once __DIR__ . '/../helpers/Response.php';
+
+class PatientController
+{
+    private $model;
+
+    public function __construct()
+    {
+        $database = new Database();
+        $db = $database->connect();
+        $this->model = new Patient($db);
+    }
+
+    // GET /api/patients
+    public function index()
+    {
+        $data = $this->model->getAllPatients();
+        Response::send(true, "Patients fetched successfully", $data);
+    }
+
+    // GET /api/patients/{id}
+    public function show($id)
+    {
+        $data = $this->model->getPatientById($id);
+        if ($data) {
+            Response::send(true, "Patient details fetched", $data);
+        } else {
+            Response::send(false, "Patient not found", [], 404);
+        }
+    }
+
+    // POST /api/patients
+    public function store()
+    {
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (!isset($data['name']) || !isset($data['phone'])) {
+            Response::send(false, "Name and Phone are required", [], 400);
+        }
+
+        if ($this->model->createPatient($data)) {
+            Response::send(true, "Patient created successfully", [], 201);
+        } else {
+            Response::send(false, "Failed to create patient", [], 500);
+        }
+    }
+
+    // PUT /api/patients/{id}
+    public function update($id)
+    {
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (!$this->model->getPatientById($id)) {
+            Response::send(false, "Patient not found", [], 404);
+        }
+
+        if ($this->model->updatePatient($id, $data)) {
+            Response::send(true, "Patient updated successfully");
+        } else {
+            Response::send(false, "Failed to update patient", [], 500);
+        }
+    }
+
+    // DELETE /api/patients/{id}
+    public function destroy($id)
+    {
+        if (!$this->model->getPatientById($id)) {
+            Response::send(false, "Patient not found", [], 404);
+        }
+
+        if ($this->model->deletePatient($id)) {
+            Response::send(true, "Patient deleted successfully");
+        } else {
+            Response::send(false, "Failed to delete patient", [], 500);
+        }
+    }
+
+    // PATCH /api/patients/{id}
+    public function patch($id)
+    {
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (!$this->model->getPatientById($id)) {
+            Response::send(false, "Patient not found", [], 404);
+        }
+
+        if (empty($data)) {
+            Response::send(false, "No fields provided for update", [], 400);
+        }
+
+        if ($this->model->patchPatient($id, $data)) {
+
+            $updatedData = $this->model->getPatientById($id);
+
+            Response::send(true, "Patient patched successfully", $updatedData);
+
+        } else {
+            Response::send(false, "Failed to patch patient", [], 500);
+        }
+    }
+
+}
+?>
