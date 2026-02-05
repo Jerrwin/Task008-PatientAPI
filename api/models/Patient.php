@@ -37,7 +37,7 @@ class Patient
         $stmt->bind_param("siss", $data['name'], $data['age'], $data['gender'], $data['phone']);
 
         if ($stmt->execute()) {
-            return true;
+            return $this->conn->insert_id;
         }
         return false;
     }
@@ -116,6 +116,30 @@ class Patient
             return true;
         }
         return false;
+    }
+
+    // Check if phone already exists
+    public function checkPhoneExists($phone)
+    {
+        $sql = "SELECT id FROM " . $this->table . " WHERE phone = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("s", $phone);
+        $stmt->execute();
+        
+        $stmt->store_result();
+        
+        return $stmt->num_rows > 0;
+    }
+
+    public function checkPhoneExistsForUpdate($phone, $currentId)
+    {
+        $sql = "SELECT id FROM " . $this->table . " WHERE phone = ? AND id != ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("si", $phone, $currentId);
+        $stmt->execute();
+        $stmt->store_result();
+        
+        return $stmt->num_rows > 0;
     }
 
 }

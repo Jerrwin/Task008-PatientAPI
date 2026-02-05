@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Patient.php';
 require_once __DIR__ . '/../helpers/Response.php';
+require_once __DIR__ . '/../helpers/Validator.php';
 
 class PatientController
 {
@@ -37,12 +38,21 @@ class PatientController
     {
         $data = json_decode(file_get_contents("php://input"), true);
 
-        if (empty($data['name']) || empty($data['age']) || empty($data['gender']) || empty($data['phone'])) {
-            Response::send(false, "All fields (name, age, gender, phone) are required", [], 400);
+        $error = Validator::validatePatient($data, true);
+
+        if ($error) {
+            Response::send(false, $error, [], 400);
         }
 
-        if ($this->model->createPatient($data)) {
-            Response::send(true, "Patient created successfully", [], 201);
+        if ($this->model->checkPhoneExists($data['phone'])) {
+            Response::send(false, "Phone number already exists", [], 409); // 409 = Conflict
+        }
+
+        $newId = $this->model->createPatient($data);
+
+        if ($newId) {
+            $newData = $this->model->getPatientById($newId);
+            Response::send(true, "Patient created successfully", $newData, 201);
         } else {
             Response::send(false, "Failed to create patient", [], 500);
         }
@@ -57,8 +67,17 @@ class PatientController
             Response::send(false, "Patient not found", [], 404);
         }
 
-        if (empty($data['name']) || empty($data['age']) || empty($data['gender']) || empty($data['phone'])) {
-            Response::send(false, "All fields (name, age, gender, phone) are required for PUT update", [], 400);
+        $error = Validator::validatePatient($data, true);
+
+        if ($error) {
+            Response::send(false, $error, [], 400);
+        }
+
+        // Validate Uniqueness (ONLY if phone is being changed)
+        if (isset($data['phone'])) {
+            if ($this->model->checkPhoneExistsForUpdate($data['phone'], $id)) {
+                Response::send(false, "Phone number already taken by another patient", [], 409);
+            }
         }
 
         if ($this->model->updatePatient($id, $data)) {
@@ -93,8 +112,16 @@ class PatientController
             Response::send(false, "Patient not found", [], 404);
         }
 
-        if (empty($data)) {
-            Response::send(false, "No fields provided for update", [], 400);
+        $error = Validator::validatePatient($data, false);
+
+        if ($error) {
+            Response::send(false, $error, [], 400);
+        }
+
+        if (isset($data['phone'])) {
+            if ($this->model->checkPhoneExistsForUpdate($data['phone'], $id)) {
+                Response::send(false, "Phone number already taken by another patient", [], 409);
+            }
         }
 
         if ($this->model->patchPatient($id, $data)) {
