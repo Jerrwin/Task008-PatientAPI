@@ -1,6 +1,4 @@
 <?php
-// api/middlewares/JsonMiddleware.php
-
 class JsonMiddleware {
     public static function handle() {
         header("Content-Type: application/json; charset=UTF-8");
