@@ -37,8 +37,8 @@ class PatientController
     {
         $data = json_decode(file_get_contents("php://input"), true);
 
-        if (!isset($data['name']) || !isset($data['phone'])) {
-            Response::send(false, "Name and Phone are required", [], 400);
+        if (empty($data['name']) || empty($data['age']) || empty($data['gender']) || empty($data['phone'])) {
+            Response::send(false, "All fields (name, age, gender, phone) are required", [], 400);
         }
 
         if ($this->model->createPatient($data)) {
@@ -57,8 +57,14 @@ class PatientController
             Response::send(false, "Patient not found", [], 404);
         }
 
+        if (empty($data['name']) || empty($data['age']) || empty($data['gender']) || empty($data['phone'])) {
+            Response::send(false, "All fields (name, age, gender, phone) are required for PUT update", [], 400);
+        }
+
         if ($this->model->updatePatient($id, $data)) {
-            Response::send(true, "Patient updated successfully");
+            $updatedData = $this->model->getPatientById($id);
+
+            Response::send(true, "Patient updated successfully", $updatedData);
         } else {
             Response::send(false, "Failed to update patient", [], 500);
         }
